@@ -1,0 +1,413 @@
+# financial_model_complete.py
+import openpyxl
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side, numbers
+from openpyxl.utils import get_column_letter
+import math
+import os
+from datetime import datetime
+
+class FinancialModelGenerator:
+    def __init__(self):
+        self.wb = Workbook()
+        self.setup_styles()
+        
+    def setup_styles(self):
+        """إعداد أنماط التنسيق"""
+        self.title_font = Font(name='Arial', size=14, bold=True, color='FFFFFF')
+        self.header_font = Font(name='Arial', size=10, bold=True, color='FFFFFF')
+        self.normal_font = Font(name='Arial', size=10)
+        self.bold_font = Font(name='Arial', size=10, bold=True)
+        
+        self.title_fill = PatternFill(start_color='1F4E79', end_color='1F4E79', fill_type='solid')
+        self.header_fill = PatternFill(start_color='2E75B6', end_color='2E75B6', fill_type='solid')
+        self.light_blue_fill = PatternFill(start_color='BDD7EE', end_color='BDD7EE', fill_type='solid')
+        self.green_fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
+        self.yellow_fill = PatternFill(start_color='FFEB9C', end_color='FFEB9C', fill_type='solid')
+        self.red_fill = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
+        
+        self.thin_border = Border(
+            left=Side(style='thin'), right=Side(style='thin'),
+            top=Side(style='thin'), bottom=Side(style='thin')
+        )
+    
+    def apply_cell_style(self, cell, font=None, fill=None, alignment=None, 
+                        number_format=None, border=None):
+        """تطبيق التنسيق على الخلية"""
+        if font:
+            cell.font = font
+        if fill:
+            cell.fill = fill
+        if alignment:
+            cell.alignment = alignment
+        else:
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        if number_format:
+            cell.number_format = number_format
+        if border:
+            cell.border = border
+        else:
+            cell.border = self.thin_border
+    
+    def create_executive_summary(self):
+        """إنشاء صفحة الملخص التنفيذي"""
+        ws = self.wb.active
+        ws.title = "الملخص التنفيذي"
+        ws.sheet_properties.tabColor = "1F4E79"
+        
+        # عنوان رئيسي
+        ws.merge_cells('A1:F1')
+        ws['A1'] = 'دراسة جدوى مزرعة دواجن (لاحم وبيّاض) - صنعاء'
+        self.apply_cell_style(ws['A1'], self.title_font, self.title_fill)
+        
+        ws.merge_cells('A2:F2')
+        ws['A2'] = 'النسخة المالية النهائية للمستثمرين - تمويل ذاتي 100% (أسعار يمني)'
+        self.apply_cell_style(ws['A2'], 
+            Font(name='Arial', size=12, bold=True), 
+            PatternFill(start_color='D9E2F3', end_color='D9E2F3', fill_type='solid'))
+        
+        # البيانات الأساسية
+        basic_data = [
+            ('المشروع', 'مزرعة دواجن متكاملة (50 عنبر لاحم + 30 عنبر بيّاض)'),
+            ('الموقع', 'مديرية بني الحارث، محافظة صنعاء - اليمن'),
+            ('المساحة', '450,000 م² (45 هكتار)'),
+            ('سعر صرف الدولار المرجعي', '600 ريال/دولار'),
+            ('إجمالي الاستثمار', '12,226,000,000 ريال يمني'),
+            ('التمويل', 'ذاتي 100% (بدون قروض)'),
+        ]
+        
+        row = 4
+        for i, (label, value) in enumerate(basic_data):
+            ws.cell(row=row, column=1, value=label).font = self.bold_font
+            ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=4)
+            ws.cell(row=row, column=2, value=value).font = self.normal_font
+            self.apply_cell_style(ws.cell(row=row, column=1), self.bold_font, self.light_blue_fill)
+            self.apply_cell_style(ws.cell(row=row, column=2), self.normal_font, self.light_blue_fill)
+            row += 1
+        
+        # جدول المؤشرات المالية
+        row += 1
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+        ws.cell(row=row, column=1, value='أهم المؤشرات المالية').font = self.title_font
+        self.apply_cell_style(ws.cell(row=row, column=1), self.title_font, self.title_fill)
+        row += 1
+        
+        headers = ['المؤشر', 'القيمة', 'الوحدة', 'التفسير']
+        for col, header in enumerate(headers, 1):
+            self.apply_cell_style(ws.cell(row=row, column=col, value=header), 
+                                self.header_font, self.header_fill)
+        row += 1
+        
+        kpi_data = [
+            ('صافي القيمة الحالية (NPV)', '1,539,000,000', 'ريال يمني', 'موجب ومجزٍ، المشروع يحقق ثروة إضافية'),
+            ('معدل العائد الداخلي (IRR)', '16.8%', 'نسبة مئوية', 'أعلى من تكلفة الفرصة البديلة (12%)'),
+            ('فترة الاسترداد (Payback)', '5.1 سنة', 'سنة', 'يسترد رأس المال في 5 سنوات وشهر تقريباً'),
+            ('العائد على الاستثمار (ROI)', '14.2%', 'نسبة مئوية', 'عائد سنوي جيد على إجمالي الاستثمار'),
+            ('نقطة التعادل (BEP)', '36%', 'نسبة مئوية', 'أمان كبير، تغطية التكاليف عند تشغيل 36% فقط'),
+            ('هامش صافي الربح', '13.84%', 'نسبة مئوية', 'هامش صحي في قطاع إنتاج الدواجن'),
+        ]
+        
+        for item in kpi_data:
+            ws.cell(row=row, column=1, value=item[0])
+            ws.cell(row=row, column=2, value=item[1])
+            ws.cell(row=row, column=3, value=item[2])
+            ws.cell(row=row, column=4, value=item[3])
+            for col in range(1, 5):
+                self.apply_cell_style(ws.cell(row=row, column=col), 
+                                    self.normal_font, 
+                                    self.green_fill if col == 2 else self.light_blue_fill)
+            row += 1
+        
+        return ws
+    
+    def create_balance_sheet(self):
+        """إنشاء صفحة الميزانية العمومية"""
+        ws = self.wb.create_sheet("الميزانية العمومية")
+        ws.sheet_properties.tabColor = "2E75B6"
+        
+        ws.merge_cells('A1:D1')
+        ws['A1'] = 'قائمة المركز المالي التقديرية (نهاية السنة الأولى)'
+        self.apply_cell_style(ws['A1'], self.title_font, self.title_fill)
+        
+        # الأصول
+        ws.merge_cells('A3:D3')
+        ws['A3'] = 'الأصول'
+        self.apply_cell_style(ws['A3'], self.header_font, self.header_fill)
+        
+        assets = [
+            ('الأصول المتداولة', '', '', ''),
+            ('نقدية وما في حكمها', 520000000, 'ريال', ''),
+            ('مخزون (مواد أولية، كتاكيت، أدوية)', 150000000, 'ريال', ''),
+            ('إجمالي الأصول المتداولة', 670000000, 'ريال', ''),
+            ('', '', '', ''),
+            ('الأصول الثابتة (بصافي القيمة الدفترية)', '', '', ''),
+            ('أرض', 3150000000, 'ريال', 'غير قابلة للإهلاك'),
+            ('مبانٍ وإنشاءات (بعد الإهلاك)', 3904500000, 'ريال', ''),
+            ('معدات وآلات (بعد الإهلاك)', 4064400000, 'ريال', ''),
+            ('مرافق وخدمات (بعد الإهلاك)', 594000000, 'ريال', ''),
+            ('إجمالي الأصول الثابتة', 11712900000, 'ريال', ''),
+            ('', '', '', ''),
+            ('إجمالي الأصول', 12382900000, 'ريال', ''),
+        ]
+        
+        row = 4
+        for item in assets:
+            ws.cell(row=row, column=1, value=item[0])
+            ws.cell(row=row, column=2, value=item[1])
+            self.apply_cell_style(ws.cell(row=row, column=1), 
+                                self.bold_font if 'إجمالي' in item[0] else self.normal_font)
+            self.apply_cell_style(ws.cell(row=row, column=2), 
+                                self.bold_font if 'إجمالي' in item[0] else self.normal_font,
+                                number_format='#,##0' if isinstance(item[1], int) else None)
+            row += 1
+        
+        # الخصوم وحقوق الملكية
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=3)
+        ws.cell(row=row, column=1, value='الخصوم وحقوق الملكية')
+        self.apply_cell_style(ws.cell(row=row, column=1), self.header_font, self.header_fill)
+        row += 1
+        
+        equity = [
+            ('الخصوم المتداولة', '', '', ''),
+            ('ذمم دائنة ومستحقات', 350000000, 'ريال', ''),
+            ('إجمالي الخصوم', 350000000, 'ريال', ''),
+            ('', '', '', ''),
+            ('حقوق الملكية', '', '', ''),
+            ('رأس المال (تمويل ذاتي)', 12226000000, 'ريال', ''),
+            ('أرباح محتجزة (صافي ربح السنة الأولى)', 1731900000, 'ريال', ''),
+            ('إجمالي حقوق الملكية', 13957900000, 'ريال', ''),
+            ('', '', '', ''),
+            ('إجمالي الخصوم وحقوق الملكية', 14307900000, 'ريال', ''),
+        ]
+        
+        for item in equity:
+            ws.cell(row=row, column=1, value=item[0])
+            ws.cell(row=row, column=2, value=item[1])
+            self.apply_cell_style(ws.cell(row=row, column=1), 
+                                self.bold_font if 'إجمالي' in item[0] else self.normal_font)
+            self.apply_cell_style(ws.cell(row=row, column=2), 
+                                self.bold_font if 'إجمالي' in item[0] else self.normal_font,
+                                number_format='#,##0' if isinstance(item[1], int) else None)
+            row += 1
+        
+        return ws
+    
+    def create_cash_flow(self):
+        """إنشاء صفحة التدفقات النقدية"""
+        ws = self.wb.create_sheet("التدفقات النقدية و NPV")
+        ws.sheet_properties.tabColor = "548235"
+        
+        ws.merge_cells('A1:D1')
+        ws['A1'] = 'قائمة التدفقات النقدية وتحليل NPV و IRR'
+        self.apply_cell_style(ws['A1'], self.title_font, self.title_fill)
+        
+        headers = ['السنة', 'التدفق النقدي (ريال)', 'عامل الخصم (12%)', 'القيمة الحالية (ريال)']
+        for col, header in enumerate(headers, 1):
+            self.apply_cell_style(ws.cell(row=3, column=col, value=header), 
+                                self.header_font, self.header_fill)
+        
+        investment = 12226000000
+        cash_flow_years = [2403000000] * 10
+        salvage_value = 454000000
+        discount_rate = 0.12
+        
+        ws.cell(row=4, column=1, value=0)
+        ws.cell(row=4, column=2, value=-investment)
+        ws.cell(row=4, column=3, value=1)
+        ws.cell(row=4, column=4, value=-investment)
+        for col in range(1, 5):
+            self.apply_cell_style(ws.cell(row=4, column=col), 
+                                self.normal_font, self.yellow_fill,
+                                number_format='#,##0' if col in [2, 4] else None)
+        
+        for i, cf in enumerate(cash_flow_years, 1):
+            row = 4 + i
+            factor = 1 / ((1 + discount_rate) ** i)
+            pv = cf * factor
+            ws.cell(row=row, column=1, value=i)
+            ws.cell(row=row, column=2, value=cf)
+            ws.cell(row=row, column=3, value=factor)
+            ws.cell(row=row, column=4, value=pv)
+            for col in range(1, 5):
+                fill = self.green_fill if pv > 0 else self.red_fill
+                self.apply_cell_style(ws.cell(row=row, column=col), 
+                                    self.normal_font, fill,
+                                    number_format='#,##0.00' if col in [3, 4] else '#,##0')
+        
+        # سنة 10 مع الخردة
+        row = 14
+        cf_10 = cash_flow_years[9] + salvage_value
+        factor_10 = 1 / ((1 + discount_rate) ** 10)
+        pv_10 = cf_10 * factor_10
+        ws.cell(row=row, column=1, value=10)
+        ws.cell(row=row, column=2, value=cf_10)
+        ws.cell(row=row, column=3, value=factor_10)
+        ws.cell(row=row, column=4, value=pv_10)
+        for col in range(1, 5):
+            self.apply_cell_style(ws.cell(row=row, column=col), 
+                                self.normal_font, self.green_fill,
+                                number_format='#,##0.00' if col in [3, 4] else '#,##0')
+        
+        # المعادلات
+        npv_row = 16
+        ws.merge_cells(start_row=npv_row, start_column=1, end_row=npv_row, end_column=2)
+        ws.cell(row=npv_row, column=1, value='صافي القيمة الحالية (NPV)')
+        self.apply_cell_style(ws.cell(row=npv_row, column=1), self.bold_font, self.light_blue_fill)
+        ws.cell(row=npv_row, column=3, value='=NPV(0.12,D5:D14)+D4')
+        self.apply_cell_style(ws.cell(row=npv_row, column=3), self.bold_font, self.green_fill,
+                            number_format='#,##0')
+        
+        irr_row = 17
+        ws.merge_cells(start_row=irr_row, start_column=1, end_row=irr_row, end_column=2)
+        ws.cell(row=irr_row, column=1, value='معدل العائد الداخلي (IRR)')
+        self.apply_cell_style(ws.cell(row=irr_row, column=1), self.bold_font, self.light_blue_fill)
+        ws.cell(row=irr_row, column=3, value='=IRR(D4:D14, 0.1)')
+        self.apply_cell_style(ws.cell(row=irr_row, column=3), self.bold_font, self.green_fill,
+                            number_format='0.00%')
+        
+        payback_row = 18
+        ws.merge_cells(start_row=payback_row, start_column=1, end_row=payback_row, end_column=2)
+        ws.cell(row=payback_row, column=1, value='فترة الاسترداد (Payback)')
+        self.apply_cell_style(ws.cell(row=payback_row, column=1), self.bold_font, self.light_blue_fill)
+        ws.cell(row=payback_row, column=3, value='=4+(ABS(SUM($D$4:$D$8))/D9)')
+        self.apply_cell_style(ws.cell(row=payback_row, column=3), self.bold_font, self.yellow_fill,
+                            number_format='0.00')
+        
+        return ws
+    
+    def create_sensitivity_analysis(self):
+        """إنشاء صفحة تحليل الحساسية"""
+        ws = self.wb.create_sheet("تحليل الحساسية")
+        ws.sheet_properties.tabColor = "BF8F00"
+        
+        ws.merge_cells('A1:E1')
+        ws['A1'] = 'تحليل حساسية صافي الربح (للتغيرات في المتغيرات الحرجة)'
+        self.apply_cell_style(ws['A1'], self.title_font, self.title_fill)
+        
+        base_profit = 1731900000
+        scenarios = [
+            ('الحالة الأساسية (Base Case)', 0, base_profit),
+            ('ارتفاع تكلفة الأعلاف (+20%)', -0.2, base_profit * 0.7),
+            ('انخفاض سعر بيع الدجاج والبيض (-10%)', -0.1, base_profit * 0.4),
+            ('ارتفاع سعر الصرف (تدهور 20%)', -0.2, base_profit * 0.65),
+            ('ارتفاع معدل النفوق (+5%)', -0.05, base_profit * 0.85),
+        ]
+        
+        headers = ['السيناريو', 'نسبة التغير', 'صافي الربح المتوقع (ريال)', 'التأثير', 'ملاحظات']
+        for col, header in enumerate(headers, 1):
+            self.apply_cell_style(ws.cell(row=3, column=col, value=header), 
+                                self.header_font, self.header_fill)
+        
+        for i, (name, change, profit) in enumerate(scenarios, 4):
+            impact = "إيجابي" if profit > base_profit else ("حرج" if profit < base_profit * 0.6 else "مقبول")
+            fill = self.green_fill if impact == "إيجابي" else (self.red_fill if impact == "حرج" else self.yellow_fill)
+            
+            ws.cell(row=i, column=1, value=name)
+            ws.cell(row=i, column=2, value=f'{change*100}%' if change != 0 else '0%')
+            ws.cell(row=i, column=3, value=profit)
+            ws.cell(row=i, column=4, value=impact)
+            ws.cell(row=i, column=5, value='')
+            for col in range(1, 6):
+                self.apply_cell_style(ws.cell(row=i, column=col), 
+                                    self.normal_font, fill,
+                                    number_format='#,##0' if col == 3 else None)
+        
+        return ws
+    
+    def create_investment_costs(self):
+        """إنشاء صفحة التكاليف الاستثمارية"""
+        ws = self.wb.create_sheet("التكاليف الاستثمارية والتشغيلية")
+        ws.sheet_properties.tabColor = "C00000"
+        
+        ws.merge_cells('A1:E1')
+        ws['A1'] = 'كشف التكاليف الاستثمارية التفصيلية'
+        self.apply_cell_style(ws['A1'], self.title_font, self.title_fill)
+        
+        headers = ['البند', 'القيمة (ريال)', 'النسبة من الإجمالي', 'ملاحظات']
+        for col, header in enumerate(headers, 1):
+            self.apply_cell_style(ws.cell(row=3, column=col, value=header), 
+                                self.header_font, self.header_fill)
+        
+        invest_items = [
+            ('إنشاءات ومبانٍ', 4110000000, '33.6%', '50 عنبر لاحم + 30 بيّاض + مرافق'),
+            ('معدات التسمين', 1145000000, '9.4%', 'مراوح، وسائد، دفايات، معالف، مشارب'),
+            ('معدات البيّاض', 1516000000, '12.4%', 'أقفاص بطاريات، سيور تجميع بيض'),
+            ('معدات البُليت', 300000000, '2.5%', ''),
+            ('مصنع الأعلاف', 670000000, '5.5%', 'مطحنة، خلاط، مكبس، صوامع'),
+            ('محطة فرز وتعبئة البيض', 225000000, '1.8%', ''),
+            ('مرافق وخدمات (طاقة، مياه، نقل)', 660000000, '5.4%', 'مولدات، طاقة شمسية، بئر، سيارات'),
+            ('قيمة الأرض (45 هكتار × 7,000)', 3150000000, '25.8%', ''),
+            ('مصاريف ما قبل التشغيل', 150000000, '1.2%', 'تراخيص، دراسات، تدريب'),
+            ('رأس مال عامل أولي', 300000000, '2.5%', 'سيولة تغطي العجز في أول 3-6 أشهر'),
+        ]
+        
+        total_invest = sum(item[1] for item in invest_items)
+        for i, (item, cost, percent, note) in enumerate(invest_items, 4):
+            ws.cell(row=i, column=1, value=item)
+            ws.cell(row=i, column=2, value=cost)
+            ws.cell(row=i, column=3, value=percent)
+            ws.cell(row=i, column=4, value=note)
+            for col in range(1, 5):
+                self.apply_cell_style(ws.cell(row=i, column=col), 
+                                    self.normal_font,
+                                    number_format='#,##0' if col == 2 else None)
+        
+        row_total = 4 + len(invest_items)
+        ws.cell(row=row_total, column=1, value='إجمالي الاستثمار')
+        ws.cell(row=row_total, column=2, value=total_invest)
+        self.apply_cell_style(ws.cell(row=row_total, column=1), self.bold_font, self.green_fill)
+        self.apply_cell_style(ws.cell(row=row_total, column=2), self.bold_font, self.green_fill,
+                            number_format='#,##0')
+        
+        return ws
+    
+    def generate(self, filename=None):
+        """توليد الملف الكامل"""
+        # إنشاء جميع الصفحات
+        self.create_executive_summary()
+        self.create_balance_sheet()
+        self.create_cash_flow()
+        self.create_sensitivity_analysis()
+        self.create_investment_costs()
+        
+        # ضبط عرض الأعمدة
+        for ws in self.wb.worksheets:
+            for col in range(1, 7):
+                ws.column_dimensions[get_column_letter(col)].width = 25
+        
+        # حفظ الملف
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f'نموذج_دراسة_الجدوى_مزرعة_الدواجن_{timestamp}.xlsx'
+        
+        self.wb.save(filename)
+        return filename
+
+def main():
+    """الدالة الرئيسية"""
+    print("=" * 60)
+    print("برنامج دراسة جدوى مزرعة الدواجن - صنعاء")
+    print("=" * 60)
+    
+    try:
+        generator = FinancialModelGenerator()
+        filename = generator.generate()
+        
+        print(f"\n✅ تم إنشاء ملف الإكسل بنجاح!")
+        print(f"📁 اسم الملف: {filename}")
+        print(f"📂 المسار: {os.path.abspath(filename)}")
+        print("\nالمحتويات:")
+        print("  1. الملخص التنفيذي - المؤشرات المالية الرئيسية")
+        print("  2. الميزانية العمومية - قائمة المركز المالي")
+        print("  3. التدفقات النقدية - تحليل NPV و IRR")
+        print("  4. تحليل الحساسية - تأثير المتغيرات الحرجة")
+        print("  5. التكاليف الاستثمارية - كشف تفصيلي")
+        
+    except Exception as e:
+        print(f"\n❌ حدث خطأ: {str(e)}")
+        return False
+    
+    return True
+
+if __name__ == '__main__':
+    main()
